@@ -1,0 +1,38 @@
+name: documents-update
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  install-dependencies:
+    name: Install Python dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pdf-test/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r pdf-test/requirements.txt
+
+      - name: Verify installed packages
+        run: |
+          echo "Installed packages:"
+          pip freeze | sed -n '1,100p'
