@@ -5,10 +5,6 @@ from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject, BooleanObject
 from pathlib import Path
 from datetime import date
-import shutil
-import subprocess
-import tempfile
-from docxtpl import DocxTemplate
 
 
 
@@ -102,101 +98,28 @@ def create_pit2():
     with open(artifact_name, "wb") as output_pdf:
         writer.write(output_pdf)
 
+    print(f"Saved filled PDF: {artifact_name}")
 
-def create_docx():
-    """Render a DOCX template using the current payload and convert to PDF.
+    print("verification")
+    r = PdfReader(str(artifact_name))
+    out_fields = r.get_fields() or {}
+    print("output fields count:", len(out_fields))
+    for k, v in out_fields.items():
+        if any(s in k for s in ("PESEL", "Nazwisko", "Imie", "Zaklad", "Data")):
+            print(k, "=>", v.get("/V"))
 
-    Template path: `inputfiles/PIT2_template.docx` (must exist). Output files saved
-    to the same `outputfiles/` directory as the PIT2 PDF (matching artifact name).
-    """
-    template_path = Path("inputfiles/WORD_template.docx")
-    out_dir = Path("outputfiles")
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    last_name = payload.get("lastName") or ""
-    first_name = payload.get("firstName") or ""
-    safe_initial = first_name[0] if first_name else "_"
-    base_name = out_dir / f"WORD_{safe_initial}{last_name}"
-
-    print(f"Rendering DOCX from template: {template_path}")
-    try:
-        docx_path, pdf_path = render_docx_and_convert(template_path, payload, base_name)
-        print(f"Saved DOCX: {docx_path}")
-        print(f"Saved PDF: {pdf_path}")
-    except Exception as e:
-        print(f"Error creating DOCX/PDF: {e}")
-
-
-    # After generating the PIT2 PDF, also render the DOCX and convert it to PDF
-    create_docx()
-
-
-def convert_docx_to_pdf(docx_path: Path, out_dir: Path) -> Path:
-    """Convert a .docx file to PDF using headless LibreOffice and return the PDF path."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        "soffice",
-        "--headless",
-        "--nologo",
-        "--nofirststartwizard",
-        "--convert-to",
-        "pdf",
-        "--outdir",
-        str(out_dir),
-        str(docx_path),
-    ]
-    p = subprocess.run(cmd, capture_output=True, text=True)
-    if p.returncode != 0:
-        raise RuntimeError(f"LibreOffice conversion failed: {p.stderr or p.stdout}")
-
-    pdf_path = out_dir / (docx_path.stem + ".pdf")
-    if not pdf_path.exists():
-        raise RuntimeError("PDF was not created.")
-    return pdf_path
-
-
-def render_docx_and_convert(template_path: Path, payload: dict, output_path: Path) -> tuple[Path, Path]:
-    """Render a DOCX template with `payload` and convert to PDF.
-
-    - `template_path` must point to an existing .docx template file.
-    - `output_path` is the base path (without suffix) where .docx and .pdf will be saved.
-
-    Returns tuple (saved_docx_path, saved_pdf_path).
-    """
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template not found: {template_path}")
-    if template_path.suffix.lower() != ".docx":
-        raise ValueError("template_path must be a .docx file")
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with tempfile.TemporaryDirectory() as td:
-        td = Path(td)
-        in_docx = td / "template.docx"
-        rendered_docx = td / "rendered.docx"
-        pdf_out_dir = td / "pdf"
-
-        # Copy template into temp dir
-        shutil.copy2(template_path, in_docx)
-
-        # Render DOCX
-        try:
-            doc = DocxTemplate(str(in_docx))
-            doc.render(payload)
-            doc.save(str(rendered_docx))
-        except Exception as e:
-            raise RuntimeError(f"DOCX render failed: {e}")
-
-        # Convert to PDF
-        pdf_path = convert_docx_to_pdf(rendered_docx, pdf_out_dir)
-
-        # Move to final destination
-        target_docx = output_path.with_suffix(".docx")
-        target_pdf = output_path.with_suffix(".pdf")
-        shutil.copy2(rendered_docx, target_docx)
-        shutil.copy2(pdf_path, target_pdf)
-
-    return target_docx, target_pdf
+    if not out_fields:
+        print("No AcroForm fields found in output; dumping page[0] annotations (/T => /V):")
+        annots = r.pages[0].get("/Annots") or []
+        for a in annots:
+            try:
+                obj = a.get_object()
+                t = obj.get("/T")
+                v = obj.get("/V")
+                if t or v:
+                    print(t, "=>", v)
+            except Exception:
+                pass
 
 
 create_pit2()
