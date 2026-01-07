@@ -1,4 +1,4 @@
-name: documents-update
+name: Booq-Document-Factory
 
 on:
   workflow_dispatch:
@@ -76,4 +76,4 @@ jobs:
             --tenant-id "${{ secrets.TENANT_ID }}" \
             --client-id "${{ secrets.CLIENT_ID }}" \
             --client-secret "${{ secrets.CLIENT_SECRET }}" \
-            --path "outputfiles/"
+            --dir "outputfiles/"
