@@ -42,18 +42,12 @@ jobs:
 
       - name: Print Received Payload
         run: |
-              sudo apt-get update
-              sudo apt-get install -y jq
+          echo "Last Name: $(echo '${{ github.event.inputs.payload }}' | jq -r '.lastName')"
+          echo "First Name: $(echo '${{ github.event.inputs.payload }}' | jq -r '.firstName')"
+          echo "Birth Date: $(echo '${{ github.event.inputs.payload }}' | jq -r '.birthDate')"
+          echo "PESEL: $(echo '${{ github.event.inputs.payload }}' | jq -r '.pesel')"
+          echo "Employer Name: $(echo '${{ github.event.inputs.payload }}' | jq -r '.employerName')'"
 
-              echo "LAST_NAME=$(echo '${{ github.event.inputs.payload }}' | jq -r '.lastName')" >> $GITHUB_ENV
-              echo "FIRST_NAME=$(echo '${{ github.event.inputs.payload }}' | jq -r '.firstName')" >> $GITHUB_ENV
-              echo "BIRTH_DATE=$(echo '${{ github.event.inputs.payload }}' | jq -r '.birthDate')" >> $GITHUB_ENV
-              echo "PESEL=$(echo '${{ github.event.inputs.payload }}' | jq -r '.pesel')" >> $GITHUB_ENV
-              echo "EMPLOYER_NAME=$(echo '${{ github.event.inputs.payload }}' | jq -r '.employerName')" >> $GITHUB_ENV
-
-              echo "Exported environment variables:"
-              echo "LAST_NAME=$LAST_NAME"
-              echo "FIRST_NAME=$FIRST_NAME"
-              echo "BIRTH_DATE=$BIRTH_DATE"
-              echo "PESEL=$PESEL"
-              echo "EMPLOYER_NAME=$EMPLOYER_NAME"
+      - name: Run document factory script
+        run: |
+          python document_factory.py --payload '${{ github.event.inputs.payload }}'
