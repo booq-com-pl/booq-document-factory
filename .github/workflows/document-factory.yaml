@@ -53,6 +53,7 @@ jobs:
           echo "Birth Date: $(echo '${{ github.event.inputs.payload }}' | jq -r '.birthDate')"
           echo "PESEL: $(echo '${{ github.event.inputs.payload }}' | jq -r '.pesel')"
           echo "Employer Name: $(echo '${{ github.event.inputs.payload }}' | jq -r '.employerName')"
+          echo "User Acronym: $(echo '${{ github.event.inputs.payload }}' | jq -r '.userAcronym')"
 
       - name: Run document factory script
         run: |
@@ -64,6 +65,15 @@ jobs:
           name: generated-documents
           path: outputfiles/
 
-      - name: Upload to Sharepoint
+      - name: Upload files to Sharepoint
         run: |
-          python upload_to_sharepoint.py --folder "Shared Documents/GeneratedDocuments" --path "outputfiles/"
+            python booq_sharepoint_upload.py \
+            --hostname "booqpoznan.sharepoint.com" \
+            --site-path "ApplicationDeployment" \
+            --drive-name "Biblioteka dokumentów" \
+            --base-folder "Pracownicy" \
+            --acronym "$(echo '${{ github.event.inputs.payload }}' | jq -r '.userAcronym')" \
+            --tenant-id "${{ secrets.TENANT_ID }}" \
+            --client-id "${{ secrets.CLIENT_ID }}" \
+            --client-secret "${{ secrets.CLIENT_SECRET }}" \
+            --path "outputfiles/"
