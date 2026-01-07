@@ -69,26 +69,30 @@ def create_pit2():
         "topmostSubform[0].Page1[0].DataWypelnienia[0]": date.today().isoformat(),
     }
 
-    writer = PdfWriter()
-    writer.append_pages_from_reader(reader)
+    # Build writer by cloning the source PDF so all AcroForm references stay valid.
+    # Copying /AcroForm manually often results in fields not being readable in the output.
+    writer = PdfWriter(clone_from=reader)
 
-    # Copy AcroForm from source PDF (important for form PDFs)
+    # Ensure values are visible in many viewers.
+    # If this is a hybrid XFA PDF, remove /XFA so readers prefer AcroForm.
     try:
-        root = reader.trailer.get("/Root", {})
-        acroform = root.get("/AcroForm")
-        if acroform:
-            writer._root_object.update({NameObject("/AcroForm"): acroform})
-            # Many viewers need NeedAppearances to be true to show updated values.
-            try:
-                writer._root_object["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
-            except Exception:
-                pass
+        root = writer._root_object
+        acro = root.get("/AcroForm")
+        if acro:
+            acro_obj = acro.get_object()
+            acro_obj.update({NameObject("/NeedAppearances"): BooleanObject(True)})
+            if "/XFA" in acro_obj:
+                print("Warning: XFA detected in /AcroForm. Removing /XFA so AcroForm values are used.")
+                del acro_obj[NameObject("/XFA")]
     except Exception as e:
-        print(f"Warning: couldn't copy AcroForm from source PDF: {e}")
+        print(f"Warning: couldn't adjust AcroForm/XFA: {e}")
 
-    # Fill values on all pages (safe even if fields are on page 1)
-    for page in writer.pages:
-        writer.update_page_form_field_values(page, values)
+    # Fill values. Prefer the document-level call if available; fall back to per-page.
+    try:
+        writer.update_page_form_field_values(None, values, auto_regenerate=True)
+    except TypeError:
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, values)
 
     with open(artifact_name, "wb") as output_pdf:
         writer.write(output_pdf)
@@ -96,10 +100,25 @@ def create_pit2():
     print(f"Saved filled PDF: {artifact_name}")
 
     print("verification")
-    r = PdfReader(artifact_name)
-    for k, v in (r.get_fields() or {}).items():
-        if "PESEL" in k or "Nazwisko" in k or "Imie" in k:
+    r = PdfReader(str(artifact_name))
+    out_fields = r.get_fields() or {}
+    print("output fields count:", len(out_fields))
+    for k, v in out_fields.items():
+        if any(s in k for s in ("PESEL", "Nazwisko", "Imie", "Zaklad", "Data")):
             print(k, "=>", v.get("/V"))
+
+    if not out_fields:
+        print("No AcroForm fields found in output; dumping page[0] annotations (/T => /V):")
+        annots = r.pages[0].get("/Annots") or []
+        for a in annots:
+            try:
+                obj = a.get_object()
+                t = obj.get("/T")
+                v = obj.get("/V")
+                if t or v:
+                    print(t, "=>", v)
+            except Exception:
+                pass
 
 
 create_pit2()
