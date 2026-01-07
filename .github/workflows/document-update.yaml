@@ -54,7 +54,7 @@ jobs:
           python booq_document_factory.py --payload '${{ github.event.inputs.payload }}'
 
       - name: Upload generated documents
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: generated-documents
           path: outputfiles/
