@@ -95,5 +95,11 @@ def create_pit2():
 
     print(f"Saved filled PDF: {artifact_name}")
 
+    print("verification")
+    r = PdfReader(artifact_name)
+    for k, v in (r.get_fields() or {}).items():
+        if "PESEL" in k or "Nazwisko" in k or "Imie" in k:
+            print(k, "=>", v.get("/V"))
+
 
 create_pit2()
