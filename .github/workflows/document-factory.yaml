@@ -1,4 +1,4 @@
-name: Booq-Document-Factory
+name: Booq-Document-Factory-${{ fromJSON(github.event.inputs.payload).userAcronym }}
 
 on:
   workflow_dispatch:

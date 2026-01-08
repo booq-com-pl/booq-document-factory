@@ -56,7 +56,6 @@ def create_pit2():
     print(f"Last Name: {last_name}")
     print(f"First Name: {first_name}")
     print(f"Birth Date: {birth_date}")
-    print(f"PESEL: {pesel}")
     print(f"Employer Name: {employer_name}")
     print(f"Creating document: {artifact_name}")
 
