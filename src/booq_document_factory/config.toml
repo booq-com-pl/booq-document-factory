@@ -1,0 +1,6 @@
+[splibrary]
+url = "https://my-sharepoint.com"
+
+[templates]
+docx = "./inputfiles/docx/"
+pdf = "./inputfiles/pdf/"
