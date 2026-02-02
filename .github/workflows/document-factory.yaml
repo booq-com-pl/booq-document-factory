@@ -22,23 +22,31 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Cache pip
+      - name: Cache Poetry
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+            .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-poetry-
 
       - name: Install LibreOffice
         run: |
           sudo apt-get update
           sudo apt-get install -y libreoffice
 
-      - name: Install requirements
+      - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install poetry
+
+      - name: Install prod dependencies (Poetry)
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --only main --no-interaction --no-ansi
 
       - name: Verify installed packages
         run: |
@@ -55,9 +63,9 @@ jobs:
           echo "Employer Name: $(echo '${{ github.event.inputs.payload }}' | jq -r '.employerName')"
           echo "User Acronym: $(echo '${{ github.event.inputs.payload }}' | jq -r '.userAcronym')"
 
-      - name: Run document factory script
+      - name: Run
         run: |
-          python booq_document_factory.py --payload '${{ github.event.inputs.payload }}'
+          poetry run python -m booq_document_factory.main --payload '${{ github.event.inputs.payload }}'
 
       - name: Upload generated documents
         uses: actions/upload-artifact@v4

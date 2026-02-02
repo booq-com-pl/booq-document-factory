@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "booq-document-factory"
+version = "0.1.0"
+description = ""
+authors = ["mgladczak <mateusz@gladczak.com>"]
+readme = "README.md"
+packages = [{ include = "booq_document_factory", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.14"
+
+cryptography = ">=3.1"
+pypdf = "*"
+docxtpl = "*"
+python-docx = "*"
+requests = "*"
+msal = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

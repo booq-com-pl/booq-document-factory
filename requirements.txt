@@ -1,6 +1,0 @@
-cryptography>=3.1
-pypdf
-docxtpl
-python-docx
-requests
-msal
