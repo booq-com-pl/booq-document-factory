@@ -1,38 +1,106 @@
+import sys
+from pathlib import Path
 import json
 import sys
 import argparse
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject, BooleanObject
-from pathlib import Path
 from datetime import date
 import shutil
 import subprocess
 import tempfile
 from docxtpl import DocxTemplate
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+from rich.logging import RichHandler
 
 
+def setup_logging(
+    *,
+    level: str = "INFO",
+    log_dir: str = "logs",
+    log_file: str = "app.log",
+) -> None:
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
 
-def load_payload():
-    parser = argparse.ArgumentParser(description="Create custom documents from JSON payload")
-    parser.add_argument("payload", nargs="?", help="JSON payload string (positional) or use --payload")
-    parser.add_argument("--payload", dest="payload_flag", help="JSON payload string (flag)")
-    args = parser.parse_args()
+    logger = logging.getLogger()
+    logger.setLevel(level)
 
-    payload_str = args.payload_flag or args.payload
-    if not payload_str:
-        print("Error: payload missing. Provide JSON as positional arg or via --payload.")
-        sys.exit(2)
+    # usuń domyślne handlery, żeby nie dublować logów przy ponownym setupie
+    logger.handlers.clear()
 
+    # 1) Konsola – ładny output
+    console_handler = RichHandler(
+        rich_tracebacks=True,
+        markup=True,
+        show_path=False,
+    )
+    console_handler.setLevel(level)
+
+    # 2) Plik – klasyczny format, łatwy do grep/analizy
+    file_handler = RotatingFileHandler(
+        Path(log_dir) / log_file,
+        maxBytes=5 * 1024 * 1024,  # 5 MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(level)
+
+    file_formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname)s %(name)s:%(lineno)d - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(file_formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+#-----
+
+def load_config_toml(path: str | None = None) -> dict:
     try:
-        return json.loads(payload_str)
-    except json.JSONDecodeError as e:
-        print(f"Error: invalid JSON payload: {e}")
-        sys.exit(2)
+        import tomllib  # py311+
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError("TOML requires Python 3.11+ (tomllib)") from exc
 
+    config_path = Path(path) if path else Path("config.toml")
+    if not config_path.exists():
+        return {}
 
-payload = load_payload()
+    raw = config_path.read_text(encoding="utf-8")
+    return tomllib.loads(raw)
 
-def create_pit2():
+# -----
+
+def doc_templates_list(templates_dir: str | Path = "src/booq_document_factory/templates") -> tuple[list[Path], list[Path]]:
+    templates_path = Path(templates_dir)
+    pwd_result = subprocess.run(["pwd"], capture_output=True, text=True, check=False)
+    ls_result = subprocess.run(["ls", "-la"], capture_output=True, text=True, check=False)
+    print("pwd:\n" + pwd_result.stdout.strip())
+    print("ls -la:\n" + ls_result.stdout)
+
+    if not templates_path.exists():
+        print(f"not found template directory: [{templates_path}]")
+        return [], []
+
+    pdfs: list[Path] = []
+    docxs: list[Path] = []
+    for path in templates_path.rglob("*"):
+        if not path.is_file():
+            continue
+        ext = path.suffix.lower()
+        if ext == ".pdf":
+            pdfs.append(path)
+        elif ext == ".docx":
+            docxs.append(path)
+
+    return sorted(pdfs), sorted(docxs)
+
+# -----
+
+def create_pit2(payload):
     reader = PdfReader("inputfiles/PIT2.pdf")
     fields = reader.get_fields() or {}
 
@@ -74,12 +142,8 @@ def create_pit2():
         "topmostSubform[0].Page1[0].DataWypelnienia[0]": date.today().isoformat(),
     }
 
-    # Build writer by cloning the source PDF so all AcroForm references stay valid.
-    # Copying /AcroForm manually often results in fields not being readable in the output.
     writer = PdfWriter(clone_from=reader)
 
-    # Ensure values are visible in many viewers.
-    # If this is a hybrid XFA PDF, remove /XFA so readers prefer AcroForm.
     try:
         root = writer._root_object
         acro = root.get("/AcroForm")
@@ -92,7 +156,6 @@ def create_pit2():
     except Exception as e:
         print(f"Warning: couldn't adjust AcroForm/XFA: {e}")
 
-    # Fill values. Prefer the document-level call if available; fall back to per-page.
     try:
         writer.update_page_form_field_values(None, values, auto_regenerate=True)
     except TypeError:
@@ -102,6 +165,7 @@ def create_pit2():
     with open(artifact_name, "wb") as output_pdf:
         writer.write(output_pdf)
 
+#-----
 
 def create_docx():
     """Render a DOCX template using the current payload and convert to PDF.
@@ -126,7 +190,7 @@ def create_docx():
     except Exception as e:
         print(f"Error creating DOCX/PDF: {e}")
 
-
+#-----
 
 def convert_docx_to_pdf(docx_path: Path, out_dir: Path) -> Path:
     """Convert a .docx file to PDF using headless LibreOffice and return the PDF path."""
@@ -158,6 +222,7 @@ def convert_docx_to_pdf(docx_path: Path, out_dir: Path) -> Path:
         raise RuntimeError("PDF was not created.")
     return pdf_path
 
+#-----
 
 def render_docx_and_convert(template_path: Path, payload: dict, output_path: Path) -> tuple[Path, Path]:
     """Render a DOCX template with `payload` and convert to PDF.
@@ -201,10 +266,3 @@ def render_docx_and_convert(template_path: Path, payload: dict, output_path: Pat
         shutil.copy2(pdf_path, target_pdf)
 
     return target_docx, target_pdf
-
-
-create_pit2()
-
-# After generating the PIT2 PDF, also render the DOCX and convert it to PDF
-create_docx()
-create_docx()

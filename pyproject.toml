@@ -15,6 +15,7 @@ docxtpl = "*"
 python-docx = "*"
 requests = "*"
 msal = "*"
+rich = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
