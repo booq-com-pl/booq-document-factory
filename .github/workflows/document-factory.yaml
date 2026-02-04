@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload files to Sharepoint
         run: |
-            python ./src/booq_document_factory/sharepoint.py \
+            python src/booq_document_factory/sharepoint.py \
               --hostname "booqpoznan.sharepoint.com" \
               --site-path "AplicationDeployment" \
               --drive-name "Biblioteka dokumentów" \

@@ -138,6 +138,7 @@ def createPdfDocument(_pdf_template, payload):
         "Text1.1": "B",
         "Text1.1.0": "C",
         "Text1.1.0.0": last_name,
+        "Text1.1.0.1": employer_name,
         "Text1.1.1": first_name,
         "Text1.0.1": "D",
         "Text1.0.1.0": "C",
