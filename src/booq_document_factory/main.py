@@ -1,5 +1,6 @@
 import sys
 import argparse
+import json
 from booq_document_factory import functions as booq
 from booq_document_factory.classes import BooqTemplateDocument
 import logging
@@ -12,11 +13,10 @@ def main() -> int:
     log.info("Start")
 
     parser = argparse.ArgumentParser(description="Create custom documents from JSON payload")
-    parser.add_argument("payload", nargs="?", help="JSON payload string (positional) or use --payload")
     parser.add_argument("--payload", dest="payload_flag", help="JSON payload string (flag)")
     args = parser.parse_args()
 
-    payload_str = args.payload_flag or args.payload
+    payload_str = args.payload_flag
     if not payload_str:
         log.exception("Error: payload missing. Provide JSON as positional arg or via --payload.")
         sys.exit(2)
@@ -31,7 +31,17 @@ def main() -> int:
         log.exception("SharePoint library URL not configured.")
 
 
-    log.info(payload_str)
+    try:
+        payload = json.loads(payload_str)
+    except json.JSONDecodeError as exc:
+        log.exception(f"Error: payload is not valid JSON: {exc}")
+        sys.exit(2)
+
+    if not isinstance(payload, dict):
+        log.exception("Error: payload must be a JSON object.")
+        sys.exit(2)
+
+    log.info(payload)
 
     pdf_templates, docx_templates = booq.doc_templates_list()
 
@@ -41,6 +51,8 @@ def main() -> int:
         log.info(f"Template document name: {_pdf_template.documentName}")
         log.info(f"Template document path: {_pdf_template.documentPath}")
         log.info(f"Full template document name: {_pdf_template.fullDocumentName}")
+        booq.createPdfDocument(_pdf_template, payload)
+
 
     for docx_template in docx_templates:
         log.info(f"Processing DOCX template: {docx_template}")
@@ -48,6 +60,9 @@ def main() -> int:
         log.info(f"Template document name: {_docx_template.documentName}")
         log.info(f"Template document path: {_docx_template.documentPath}")
         log.info(f"Full template document name: {_docx_template.fullDocumentName}")
+        booq.createWordDocument(_docx_template, payload)
+
+
 
     # log.info(f"PDF templates: {pdf_templates}")
 

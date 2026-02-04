@@ -15,6 +15,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from rich.logging import RichHandler
+import logging
+log = logging.getLogger(__name__)
+
 
 
 def setup_logging(
@@ -76,10 +79,6 @@ def load_config_toml(path: str | None = None) -> dict:
 
 def doc_templates_list(templates_dir: str | Path = "src/booq_document_factory/templates") -> tuple[list[Path], list[Path]]:
     templates_path = Path(templates_dir)
-    pwd_result = subprocess.run(["pwd"], capture_output=True, text=True, check=False)
-    ls_result = subprocess.run(["ls", "-la"], capture_output=True, text=True, check=False)
-    print("pwd:\n" + pwd_result.stdout.strip())
-    print("ls -la:\n" + ls_result.stdout)
 
     if not templates_path.exists():
         print(f"not found template directory: [{templates_path}]")
@@ -100,22 +99,22 @@ def doc_templates_list(templates_dir: str | Path = "src/booq_document_factory/te
 
 # -----
 
-def create_pit2(payload):
-    reader = PdfReader("inputfiles/PIT2.pdf")
+def createPdfDocument(_pdf_template, payload):
+    reader = PdfReader(_pdf_template.documentPath + "/" + _pdf_template.fullDocumentName)
     fields = reader.get_fields() or {}
 
-    print("PDF Form Fields:")
+    log.info("PDF Form Fields:")
     for name, info in fields.items():
         # info is a field dictionary; /FT is field type, /V is current value
         try:
             print(name, "=>", info.get("/FT"), info.get("/V"))
         except Exception:
-            print(name)
+            log.info(name)
 
-    last_name = payload.get("lastName") or ""
-    first_name = payload.get("firstName") or ""
-    birth_date = payload.get("birthDate") or ""
-    pesel = payload.get("pesel") or ""
+    last_name = payload.get("employeeLastName") or ""
+    first_name = payload.get("employeeFirstName") or ""
+    birth_date = payload.get("employeeBirthDate") or ""
+    pesel = payload.get("employeePesel") or ""
     employer_name = payload.get("employerName") or ""
 
     # Output path
@@ -123,14 +122,14 @@ def create_pit2(payload):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     safe_initial = first_name[0] if first_name else "_"
-    artifact_name = out_dir / f"PIT2_{safe_initial}{last_name}.pdf"
+    artifact_name = out_dir / f"{_pdf_template.documentName}_{safe_initial}{last_name}.pdf"
 
-    print(f"Last Name: {last_name}")
-    print(f"First Name: {first_name}")
-    print(f"Birth Date: {birth_date}")
-    print(f"PESEL: {pesel}")
-    print(f"Employer Name: {employer_name}")
-    print(f"Creating document: {artifact_name}")
+    log.info(f"Last Name: {last_name}")
+    log.info(f"First Name: {first_name}")
+    log.info(f"Birth Date: {birth_date}")
+    log.info(f"PESEL: {pesel}")
+    log.info(f"Employer Name: {employer_name}")
+    log.info(f"Output document: {artifact_name}")
 
     # Map of field name -> value (this is what pypdf expects)
     values = {
@@ -147,12 +146,17 @@ def create_pit2(payload):
     try:
         root = writer._root_object
         acro = root.get("/AcroForm")
-        if acro:
-            acro_obj = acro.get_object()
-            acro_obj.update({NameObject("/NeedAppearances"): BooleanObject(True)})
-            if "/XFA" in acro_obj:
-                print("Warning: XFA detected in /AcroForm. Removing /XFA so AcroForm values are used.")
-                del acro_obj[NameObject("/XFA")]
+        if not acro:
+            log.error("No /AcroForm dictionary found. Skipping form field update, skipping document generation.")
+            with open(artifact_name, "wb") as output_pdf:
+                writer.write(output_pdf)
+            return
+
+        acro_obj = acro.get_object()
+        acro_obj.update({NameObject("/NeedAppearances"): BooleanObject(True)})
+        if "/XFA" in acro_obj:
+            print("Warning: XFA detected in /AcroForm. Removing /XFA so AcroForm values are used.")
+            del acro_obj[NameObject("/XFA")]
     except Exception as e:
         print(f"Warning: couldn't adjust AcroForm/XFA: {e}")
 
@@ -167,28 +171,23 @@ def create_pit2(payload):
 
 #-----
 
-def create_docx():
-    """Render a DOCX template using the current payload and convert to PDF.
+def createWordDocument(_docx_template, payload):
 
-    Template path: `inputfiles/PIT2_template.docx` (must exist). Output files saved
-    to the same `outputfiles/` directory as the PIT2 PDF (matching artifact name).
-    """
-    template_path = Path("inputfiles/WORD_template.docx")
     out_dir = Path("outputfiles")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    last_name = payload.get("lastName") or ""
-    first_name = payload.get("firstName") or ""
+    last_name = payload.get("employeeLastName") or ""
+    first_name = payload.get("employeeFirstName") or ""
     safe_initial = first_name[0] if first_name else "_"
-    base_name = out_dir / f"WORD_{safe_initial}{last_name}"
+    base_name = out_dir / f"{_docx_template.documentName}_{safe_initial}{last_name}"
 
-    print(f"Rendering DOCX from template: {template_path}")
+    log.info(f"Rendering DOCX from template: {_docx_template.fullDocumentNameAndPath}")
     try:
-        docx_path, pdf_path = render_docx_and_convert(template_path, payload, base_name)
-        print(f"Saved DOCX: {docx_path}")
-        print(f"Saved PDF: {pdf_path}")
+        docx_path, pdf_path = render_docx_and_convert(_docx_template.fullDocumentNameAndPath, payload, base_name)
+        log.info(f"Saved DOCX: {docx_path}")
+        log.info(f"Saved PDF: {pdf_path}")
     except Exception as e:
-        print(f"Error creating DOCX/PDF: {e}")
+        log.error(f"Error creating DOCX/PDF: {e}")
 
 #-----
 
@@ -224,7 +223,7 @@ def convert_docx_to_pdf(docx_path: Path, out_dir: Path) -> Path:
 
 #-----
 
-def render_docx_and_convert(template_path: Path, payload: dict, output_path: Path) -> tuple[Path, Path]:
+def render_docx_and_convert(template_path: str | Path, payload: dict, output_path: str | Path) -> tuple[Path, Path]:
     """Render a DOCX template with `payload` and convert to PDF.
 
     - `template_path` must point to an existing .docx template file.
@@ -232,6 +231,9 @@ def render_docx_and_convert(template_path: Path, payload: dict, output_path: Pat
 
     Returns tuple (saved_docx_path, saved_pdf_path).
     """
+    template_path = Path(template_path)
+    output_path = Path(output_path)
+
     if not template_path.exists():
         raise FileNotFoundError(f"Template not found: {template_path}")
     if template_path.suffix.lower() != ".docx":
@@ -246,23 +248,32 @@ def render_docx_and_convert(template_path: Path, payload: dict, output_path: Pat
         pdf_out_dir = td / "pdf"
 
         # Copy template into temp dir
+        log.info(f"Copying template [{template_path.name}] to temp dir: {in_docx}")
         shutil.copy2(template_path, in_docx)
 
+
         # Render DOCX
+        log.info(f"Rendering DOCX to: {rendered_docx}")
         try:
             doc = DocxTemplate(str(in_docx))
             doc.render(payload)
             doc.save(str(rendered_docx))
+            log.info(f"DOCX rendered and saved to: {rendered_docx}")
         except Exception as e:
             raise RuntimeError(f"DOCX render failed: {e}")
 
-        # Convert to PDF
-        pdf_path = convert_docx_to_pdf(rendered_docx, pdf_out_dir)
+        # Verify the rendered DOCX was saved
+        if not rendered_docx.exists():
+            raise RuntimeError(f"Rendered DOCX file was not saved: {rendered_docx}")
+
+        log.info(f"Verified DOCX file saved successfully: {rendered_docx}")
+
 
         # Move to final destination
         target_docx = output_path.with_suffix(".docx")
         target_pdf = output_path.with_suffix(".pdf")
+        log.info(f"Copying rendered DOCX and PDF to output path: {output_path}.docx")
         shutil.copy2(rendered_docx, target_docx)
-        shutil.copy2(pdf_path, target_pdf)
+        # shutil.copy2(pdf_path, target_pdf)
 
     return target_docx, target_pdf

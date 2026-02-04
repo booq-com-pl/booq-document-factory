@@ -22,12 +22,7 @@ Fields to be used during document creation:
 --------
 Manual Execution:
 
-poetry run python -m booq_document_factory.main --payload '{
-    "ref":"main",
-    "inputs": {
-    "payload": "{\"employeeLastName\":\"Kowalski\",\"employeeFirstName\":\"Jan\",\"employeeBirthDate\":\"1985-03-15\",\"employeePesel\":\"85031512345\",\"employeeAddress\":\"Ulica\",\"employeePostalCode\":\"00-001\",\"employeeCity\":\"Warsaw\",\"employeeEmail\":\"adres@email.pl\",\"employeePosition\":\"Developer\",\"employerName\":\"ABC Corporation\",\"employerAddress\":\"Employer Street 1\",\"employerPostalCode\":\"00-002\",\"employerCity\":\"Warsaw\",\"userAcronym\":\"JKowalski\"}"
-    }
-  }'
+poetry run python -m booq_document_factory.main --payload "{\"employeeLastName\":\"Kowalski\",\"employeeFirstName\":\"Jan\",\"employeeBirthDate\":\"1985-03-15\",\"employeePesel\":\"85031512345\",\"employeeAddress\":\"Ulica\",\"employeePostalCode\":\"00-001\",\"employeeCity\":\"Warsaw\",\"employeeEmail\":\"adres@email.pl\",\"employeePosition\":\"Developer\",\"employerName\":\"ABC Corporation\",\"employerAddress\":\"Employer Street 1\",\"employerPostalCode\":\"00-002\",\"employerCity\":\"Warsaw\",\"userAcronym\":\"JKowalski\"}"
 --------
 ```bash
 curl -L -X POST \
