@@ -268,12 +268,14 @@ def render_docx_and_convert(template_path: str | Path, payload: dict, output_pat
 
         log.info(f"Verified DOCX file saved successfully: {rendered_docx}")
 
+        # Convert to PDF
+        pdf_path = convert_docx_to_pdf(rendered_docx, pdf_out_dir)
 
         # Move to final destination
         target_docx = output_path.with_suffix(".docx")
         target_pdf = output_path.with_suffix(".pdf")
         log.info(f"Copying rendered DOCX and PDF to output path: {output_path}.docx")
         shutil.copy2(rendered_docx, target_docx)
-        # shutil.copy2(pdf_path, target_pdf)
+        shutil.copy2(pdf_path, target_pdf)
 
     return target_docx, target_pdf
