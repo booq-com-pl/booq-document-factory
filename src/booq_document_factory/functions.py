@@ -133,8 +133,8 @@ def createPdfDocument(_pdf_template, payload):
 
     # Map of field name -> value (this is what pypdf expects)
     values = {
-        "Text1.1.0.0": pesel,
-        "Text1.1.0.1": last_name,
+        "Text1.0.0": pesel,
+        "Text1.1.0.0": last_name,
         "Text1.1.1": first_name,
         "Text1.1.0.1": employer_name,
         # "topmostSubform[0].Page1[0].DataUrodzenia[0]": birth_date,
