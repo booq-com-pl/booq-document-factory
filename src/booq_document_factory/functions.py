@@ -133,12 +133,12 @@ def createPdfDocument(_pdf_template, payload):
 
     # Map of field name -> value (this is what pypdf expects)
     values = {
-        "topmostSubform[0].Page1[0].PESEL1[0]": pesel,
-        "topmostSubform[0].Page1[0].Nazwisko[0]": last_name,
-        "topmostSubform[0].Page1[0].Imie[0]": first_name,
-        "topmostSubform[0].Page1[0].Zaklad[0]": employer_name,
-        "topmostSubform[0].Page1[0].DataUrodzenia[0]": birth_date,
-        "topmostSubform[0].Page1[0].DataWypelnienia[0]": date.today().isoformat(),
+        "Text1.1.0.0": pesel,
+        "Text1.1.0.1": last_name,
+        "Text1.1.1": first_name,
+        "Text1.1.0.1": employer_name,
+        # "topmostSubform[0].Page1[0].DataUrodzenia[0]": birth_date,
+        # "topmostSubform[0].Page1[0].DataWypelnienia[0]": date.today().isoformat(),
     }
 
     writer = PdfWriter(clone_from=reader)
