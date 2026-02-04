@@ -134,11 +134,11 @@ def createPdfDocument(_pdf_template, payload):
     # Map of field name -> value (this is what pypdf expects)
     values = {
         "Text1": "A",
-        "Text1.0": pesel,
+        "Text1.0.0": pesel,
         "Text1.1": "B",
         "Text1.1.0": "C",
         "Text1.1.0.0": last_name,
-        "Text1.1.0.1": first_name,
+        "Text1.1.1": first_name,
         "Text1.0.1": "D",
         "Text1.0.1.0": "C",
         "Text1.0.1.1": "E",
