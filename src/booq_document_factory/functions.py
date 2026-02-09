@@ -111,11 +111,8 @@ def createPdfDocument(_pdf_template, payload):
         except Exception:
             log.info(name)
 
-    last_name = payload.get("employeeLastName") or ""
-    first_name = payload.get("employeeFirstName") or ""
-    birth_date = payload.get("employeeBirthDate") or ""
-    pesel = payload.get("employeePesel") or ""
-    employer_name = payload.get("employerName") or ""
+    last_name = payload.get("pracNazwisko") or ""
+    first_name = payload.get("pracImie") or ""
 
     # Output path
     out_dir = Path("outputfiles")
@@ -124,12 +121,6 @@ def createPdfDocument(_pdf_template, payload):
     safe_initial = first_name[0] if first_name else "_"
     artifact_name = out_dir / f"{_pdf_template.documentName}_{safe_initial}{last_name}.pdf"
 
-    log.info(f"Last Name: {last_name}")
-    log.info(f"First Name: {first_name}")
-    log.info(f"Birth Date: {birth_date}")
-    log.info(f"PESEL: {pesel}")
-    log.info(f"Employer Name: {employer_name}")
-    log.info(f"Output document: {artifact_name}")
 
     # Map of field name -> value (this is what pypdf expects)
     values = {
@@ -192,8 +183,8 @@ def createWordDocument(_docx_template, payload):
     out_dir = Path("outputfiles")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    last_name = payload.get("employeeLastName") or ""
-    first_name = payload.get("employeeFirstName") or ""
+    last_name = payload.get("pracNazwisko") or ""
+    first_name = payload.get("pracImie") or ""
     safe_initial = first_name[0] if first_name else "_"
     base_name = out_dir / f"{_docx_template.documentName}_{safe_initial}{last_name}"
 
