@@ -113,6 +113,8 @@ def createPdfDocument(_pdf_template, payload):
 
     last_name = payload.get("pracNazwisko") or ""
     first_name = payload.get("pracImie") or ""
+    pesel = payload.get("pracPesel") or ""
+    employer_name = payload.get("pracodNazwa") or ""
 
     # Output path
     out_dir = Path("outputfiles")
