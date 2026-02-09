@@ -78,10 +78,10 @@ jobs:
             poetry run python src/booq_document_factory/sharepoint.py \
                     --hostname "booqpoznan.sharepoint.com" \
                     --site-path "kadryipace" \
-                    --drive-name "Shared Documents" \
+                    --drive-name "Documents" \
                     --base-folder "dokumenty klientów" \
-                    --company-name "$(echo '${{ github.event.inputs.payload }}' | jq -r '.employerName')" \
-                    --acronym "$(echo '${{ github.event.inputs.payload }}' | jq -r '.userAcronym')" \
+                    --company-name "$(echo '${{ github.event.inputs.payload }}' | jq -r '.pracodAkronim')" \
+                    --acronym "$(echo '${{ github.event.inputs.payload }}' | jq -r '.pracAkronim')" \
                     --tenant-id "${{ secrets.TENANT_ID }}" \
                     --client-id "${{ secrets.CLIENT_ID }}" \
                     --client-secret "${{ secrets.CLIENT_SECRET }}" \
