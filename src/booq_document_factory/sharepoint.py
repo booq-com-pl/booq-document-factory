@@ -125,17 +125,29 @@ def main():
     p.add_argument("--client-secret", default=os.getenv("CLIENT_SECRET"))
 
     # Z Twojego linku:
+    # p.add_argument("--hostname", default="booqpoznan.sharepoint.com")
+    # p.add_argument("--site-path", default="AplicationDeployment")      # /sites/AplicationDeployment
+    # p.add_argument("--drive-name", default="Biblioteka dokumentów")     # nazwa biblioteki (drive)
+    # p.add_argument("--base-folder", default="Pracownicy")              # folder bazowy w bibliotece
+    # p.add_argument("--acronym", required=True, help="Nazwa katalogu do utworzenia pod Pracownicy/")
+
     p.add_argument("--hostname", default="booqpoznan.sharepoint.com")
-    p.add_argument("--site-path", default="AplicationDeployment")      # /sites/AplicationDeployment
-    p.add_argument("--drive-name", default="Biblioteka dokumentów")     # nazwa biblioteki (drive)
-    p.add_argument("--base-folder", default="Pracownicy")              # folder bazowy w bibliotece
-    p.add_argument("--acronym", required=True, help="Nazwa katalogu do utworzenia pod Pracownicy/")
+    p.add_argument("--site-path", default="kadryipace")      # /sites/AplicationDeployment
+    p.add_argument("--drive-name", default="Shared Documents")     # nazwa biblioteki (drive)
+    p.add_argument("--base-folder", default="dokumenty klientów")              # folder bazowy w bibliotece
+    p.add_argument("--company-name", required=True, help="Nazwa katalogu firmy/")
+    p.add_argument("--acronym", required=True, help="Nazwa katalogu do utworzenia pod <company-name>/")
 
     p.add_argument("--dir", dest="dir", help="Lokalny katalog do uploadu (jeden poziom, tylko PDF)")
     p.add_argument("file", nargs="?", help="lokalna ścieżka do pliku do uploadu (gdy nie używasz --dir)")
     args = p.parse_args()
 
-    print(f"Arguments: tenant_id={args.tenant_id}, client_id={args.client_id}, hostname={args.hostname}, site_path={args.site_path}, drive_name={args.drive_name}, base_folder={args.base_folder}, acronym={args.acronym}, dir={args.dir}, file={args.file}")
+    print(
+        f"Arguments: tenant_id={args.tenant_id}, client_id={args.client_id}, "
+        f"hostname={args.hostname}, site_path={args.site_path}, drive_name={args.drive_name}, "
+        f"base_folder={args.base_folder}, company_name={args.company_name}, acronym={args.acronym}, "
+        f"dir={args.dir}, file={args.file}"
+    )
 
     if not args.tenant_id or not args.client_id or not args.client_secret:
         print("Brak TENANT_ID/CLIENT_ID/CLIENT_SECRET (parametry lub zmienne env).", file=sys.stderr)
@@ -146,8 +158,12 @@ def main():
     site_id = resolve_site_id(token, args.hostname, args.site_path)
     drive_id = resolve_drive_id_by_name(token, site_id, args.drive_name)
 
-    # upewnij się, że istnieje Pracownicy/<acronym>
-    target_folder = ensure_folder(token, drive_id, args.base_folder, args.acronym)
+    # upewnij się, że istnieje <base-folder>/<company-name>/<acronym>
+    # Upewnij się, że istnieje: <base-folder>/<company-name>/<acronym>
+    # 1) base-folder/company-name
+    company_folder = ensure_folder(token, drive_id, args.base_folder, args.company_name)
+    # 2) base-folder/company-name/acronym
+    target_folder = ensure_folder(token, drive_id, company_folder, args.acronym)
 
     # Upload either a directory (one level, PDFs only) or a single file.
     if args.dir:
