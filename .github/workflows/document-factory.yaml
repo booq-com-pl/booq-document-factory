@@ -78,7 +78,7 @@ jobs:
             poetry run python src/booq_document_factory/sharepoint.py \
                     --hostname "booqpoznan.sharepoint.com" \
                     --site-path "kadryipace" \
-                    --drive-name "Documents" \
+                    --drive-name "Dokumenty" \
                     --base-folder "dokumenty klientów" \
                     --company-name "$(echo '${{ github.event.inputs.payload }}' | jq -r '.pracodAkronim')" \
                     --acronym "$(echo '${{ github.event.inputs.payload }}' | jq -r '.pracAkronim')" \
